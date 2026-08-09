@@ -1,0 +1,8 @@
+2026-08-09 01:12:03 INFO  [auth-service] User login successful user_id=4471
+2026-08-09 01:20:11 WARNING [db-service] Query took 4200ms exceeding 3000ms threshold
+2026-08-09 01:20:45 ERROR [db-service] Connection pool exhausted - 50/50 connections in use
+2026-08-09 01:21:02 ERROR [db-service] Connection pool exhausted - 50/50 connections in use
+2026-08-09 01:21:30 ERROR [db-service] Connection pool exhausted - 50/50 connections in use
+2026-08-09 01:22:00 CRITICAL [db-service] Database failover triggered - primary unresponsive
+2026-08-09 01:55:30 ERROR [backup-service] Backup failed reason="insufficient storage"
+2026-08-09 02:10:45 ERROR [voip-service] SIP registration failed reason="authentication timeout"
