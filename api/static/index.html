@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI OPS AUTOMATION TOOLKIT</title>
+<style>
+  :root {
+    --bg: #fff;
+    --fg: #000;
+    --muted: #666;
+  }
+  [data-theme="dark"] {
+    --bg: #000;
+    --fg: #fff;
+    --muted: #999;
+  }
+  html { font-size: 18px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Courier New", Courier, monospace;
+    padding: 40px 20px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .container { max-width: 880px; margin: 0 auto; }
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 4px solid var(--fg);
+    padding-bottom: 12px;
+    margin-bottom: 4px;
+  }
+  h1 {
+    font-size: 1.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  #theme-toggle {
+    background: var(--fg);
+    color: var(--bg);
+    border: 2px solid var(--fg);
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    width: auto;
+  }
+  #theme-toggle:hover { background: var(--bg); color: var(--fg); }
+  .subtitle {
+    font-size: 0.85rem;
+    margin: 12px 0 32px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--fg);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0;
+    border-top: 3px solid var(--fg);
+    border-left: 3px solid var(--fg);
+    margin-bottom: 32px;
+  }
+  .card {
+    border-right: 3px solid var(--fg);
+    border-bottom: 3px solid var(--fg);
+    padding: 20px;
+  }
+  .card h3 {
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .card p {
+    font-size: 1.1rem;
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+  button {
+    background: var(--fg);
+    color: var(--bg);
+    border: none;
+    padding: 14px 18px;
+    font-family: inherit;
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    width: 100%;
+  }
+  button:hover { background: var(--bg); color: var(--fg); box-shadow: inset 0 0 0 2px var(--fg); }
+  button:active { opacity: 0.7; }
+  .ticket-form {
+    border: 3px solid var(--fg);
+    padding: 20px;
+    margin-bottom: 32px;
+  }
+  .ticket-form h3 {
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .ticket-form input {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 12px;
+    background: var(--bg);
+    border: 2px solid var(--fg);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 1.2rem;
+  }
+  .ticket-form input::placeholder { color: var(--muted); text-transform: uppercase; font-size: 0.85rem; }
+  #output {
+    border: 3px solid var(--fg);
+    padding: 20px;
+    min-height: 140px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .section-label {
+    text-transform: uppercase;
+    font-size: 1.3rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin: 24px 0 10px;
+  }
+  .trace {
+    border: 3px solid var(--fg);
+    padding: 20px;
+    margin-bottom: 0;
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+  .trace-line::before { content: "> "; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <h1>AI OPS AUTOMATION TOOLKIT</h1>
+    <button id="theme-toggle" onclick="toggleTheme()">Night Mode</button>
+  </div>
+  <p class="subtitle">// Live backend. Click a card to run it for real.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Backup Status</h3>
+      <p>Check backup jobs for failures or staleness</p>
+      <button onclick="runGet('/api/backup-status')">Run Check</button>
+    </div>
+    <div class="card">
+      <h3>Health Check</h3>
+      <p>Ping live service endpoints</p>
+      <button onclick="runGet('/api/health-check')">Run Check</button>
+    </div>
+    <div class="card">
+      <h3>Analyze Logs (AI)</h3>
+      <p>Parse logs + get an AI severity analysis</p>
+      <button onclick="runGet('/api/analyze-logs')">Run Analysis</button>
+    </div>
+    <div class="card">
+      <h3>List Tickets</h3>
+      <p>View tickets created this session</p>
+      <button onclick="runGet('/api/tickets')">List Tickets</button>
+    </div>
+  </div>
+
+  <div class="ticket-form">
+    <h3>Create Ticket</h3>
+    <input id="t-title" placeholder="Title">
+    <input id="t-desc" placeholder="Description">
+    <input id="t-sev" placeholder="Severity (e.g. critical)">
+    <button onclick="createTicket()">Create Ticket</button>
+  </div>
+
+  <div class="section-label">Backend Pipeline</div>
+  <div id="trace" class="trace">Not run yet.</div>
+
+  <div class="section-label">Raw Output</div>
+  <div id="output">Waiting for input...</div>
+</div>
+
+<script>
+const BASE = window.location.origin;
+const output = document.getElementById("output");
+const traceEl = document.getElementById("trace");
+const toggleBtn = document.getElementById("theme-toggle");
+
+function applyTheme(theme) {
+  if (theme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+    toggleBtn.textContent = "Day Mode";
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+    toggleBtn.textContent = "Night Mode";
+  }
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  const next = isDark ? "light" : "dark";
+  localStorage.setItem("theme", next);
+  applyTheme(next);
+}
+
+applyTheme(localStorage.getItem("theme") || "light");
+
+function renderTrace(steps) {
+  traceEl.innerHTML = "";
+  steps.forEach((line, i) => {
+    setTimeout(() => {
+      const div = document.createElement("div");
+      div.className = "trace-line";
+      div.textContent = line;
+      traceEl.appendChild(div);
+    }, i * 150);
+  });
+}
+
+async function runGet(path) {
+  traceEl.textContent = "RUNNING...";
+  output.textContent = "LOADING... (first request may take ~30s if the server was sleeping)";
+  try {
+    const res = await fetch(BASE + path);
+    const data = await res.json();
+    if (data.trace) {
+      renderTrace(data.trace);
+      output.textContent = JSON.stringify(data.result, null, 2);
+    } else {
+      traceEl.textContent = "(no trace for this endpoint)";
+      output.textContent = JSON.stringify(data, null, 2);
+    }
+  } catch (err) {
+    traceEl.textContent = "FAILED";
+    output.textContent = "ERROR: " + err.message;
+  }
+}
+
+async function createTicket() {
+  const title = document.getElementById("t-title").value;
+  const description = document.getElementById("t-desc").value;
+  const severity = document.getElementById("t-sev").value;
+  if (!title || !description || !severity) {
+    output.textContent = "PLEASE FILL IN ALL TICKET FIELDS.";
+    return;
+  }
+  traceEl.textContent = "RUNNING...";
+  output.textContent = "CREATING TICKET...";
+  try {
+    const res = await fetch(BASE + "/api/tickets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description, severity }),
+    });
+    const data = await res.json();
+    renderTrace(data.trace);
+    output.textContent = JSON.stringify(data.result, null, 2);
+  } catch (err) {
+    traceEl.textContent = "FAILED";
+    output.textContent = "ERROR: " + err.message;
+  }
+}
+</script>
+</body>
+</html>
