@@ -10,7 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from scripts.backup_check import check_backups
-from scripts.api_health_check import run_health_check
+from scripts.api_health_check import run_health_check, load_monitored_sites
+from notifications.email_alert import send_alert_email
 from scripts.log_parser import parse_log_file
 from llm.analysis import analyze_data
 
@@ -49,6 +50,44 @@ def health_check():
         trace.append(f"  {r['name']}: {status} ({r['response_time_ms']}ms)")
     trace.append(f"{result['healthy_count']}/{result['checked_count']} endpoints healthy")
     return {"trace": trace, "result": result}
+
+_last_known_status = {}
+
+
+
+@app.get("/api/uptime-check")
+def uptime_check():
+    trace = []
+    sites = load_monitored_sites()
+    trace.append(f"Loaded {len(sites)} monitored site(s) from config")
+    result = run_health_check(sites)
+
+    alerts_sent = []
+    for r in result["results"]:
+        name = r["name"]
+        was_healthy = _last_known_status.get(name, True)
+        is_healthy = r["healthy"]
+
+        if was_healthy and not is_healthy:
+            trace.append(f"{name} just went DOWN - sending alert email...")
+            email_result = send_alert_email(
+                subject=f"[ALERT] {name} is down",
+                body=(
+                    f"{name} ({r['url']}) failed a health check.\n\n"
+                    f"Status code: {r['status_code']}\n"
+                    f"Error: {r['error']}\n"
+                    f"Response time: {r['response_time_ms']}ms"
+                ),
+            )
+            alerts_sent.append({"site": name, "email_result": email_result})
+            trace.append(f"  Email result: {email_result}")
+        elif not was_healthy and is_healthy:
+            trace.append(f"{name} recovered")
+
+        _last_known_status[name] = is_healthy
+
+    trace.append(f"{result['healthy_count']}/{result['checked_count']} sites healthy")
+    return {"trace": trace, "result": result, "alerts_sent": alerts_sent}
 
 
 @app.get("/api/analyze-logs")

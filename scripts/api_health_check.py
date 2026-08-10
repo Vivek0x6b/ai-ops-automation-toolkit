@@ -1,5 +1,8 @@
+import json
+from pathlib import Path
 import time 
 import requests
+
 DEFAULT_TIMEOUT_SECONDS = 5
 
 DEFAULT_ENDPOINTS = [
@@ -7,6 +10,14 @@ DEFAULT_ENDPOINTS = [
     {"name": "GitHub API", "url": "https://api.github.com"},
     {"name": "Intentional 404 Test", "url": "https://httpbin.org/status/404"},
 ]
+
+MONITORED_SITES_FILE = Path(__file__).parent.parent / "data" / "monitored_sites.json"
+
+
+def load_monitored_sites() -> list[dict]:
+    with open(MONITORED_SITES_FILE) as f:
+        return json.load(f)
+
 
 def check_endpoint(name, url, timeout=DEFAULT_TIMEOUT_SECONDS):
     start = time.monotonic()
