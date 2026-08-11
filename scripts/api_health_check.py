@@ -43,14 +43,15 @@ def check_endpoint(name, url, timeout=DEFAULT_TIMEOUT_SECONDS):
             "response_time_ms":elapsed_ms,
             "error":str(e),
         }
-def run_health_check(endpoint=None):
-    endpoint = endpoint or DEFAULT_ENDPOINTS
-    results = [check_endpoint(e["name"],e["url"])for e in endpoint]
+def run_health_check(endpoints: list[dict] | None = None, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> dict:
+    endpoints = endpoints or DEFAULT_ENDPOINTS
+    results = [check_endpoint(e["name"], e["url"], timeout=timeout) for e in endpoints]
     healthy_count = sum(1 for r in results if r["healthy"])
+
     return {
         "checked_count": len(results),
         "healthy_count": healthy_count,
-        "unhealthy_count": len(results)- healthy_count,
+        "unhealthy_count": len(results) - healthy_count,
         "results": results,
     }
 if __name__=="__main__":

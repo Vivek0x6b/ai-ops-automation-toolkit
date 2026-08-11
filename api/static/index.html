@@ -113,9 +113,19 @@
     border: 2px solid var(--fg);
     color: var(--fg);
     font-family: inherit;
-    font-size: 1.2rem;
+    font-size: 1rem;
   }
   .ticket-form input::placeholder { color: var(--muted); text-transform: uppercase; font-size: 0.85rem; }
+  .admin-key-input {
+    width: 100%;
+    padding: 12px;
+    background: var(--bg);
+    border: 2px solid var(--fg);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 1rem;
+  }
+  .admin-key-input::placeholder { color: var(--muted); text-transform: uppercase; font-size: 0.85rem; }
   #output {
     border: 3px solid var(--fg);
     padding: 20px;
@@ -128,8 +138,7 @@
   }
   .section-label {
     text-transform: uppercase;
-    font-size: 1.3rem;
-    font-weight: bold;
+    font-size: 0.9rem;
     letter-spacing: 0.5px;
     margin: 24px 0 10px;
   }
@@ -171,6 +180,12 @@
       <h3>List Tickets</h3>
       <p>View tickets created this session</p>
       <button onclick="runGet('/api/tickets')">List Tickets</button>
+    </div>
+    <div class="card">
+      <h3>Uptime Check (Admin)</h3>
+      <p>Real check on live monitored sites + email alerting. Protected - enter key to run.</p>
+      <input id="admin-key" class="admin-key-input" type="password" placeholder="Admin API Key" style="margin-bottom:10px;">
+      <button onclick="runUptimeCheck()">Run Uptime Check</button>
     </div>
   </div>
 
@@ -228,7 +243,7 @@ function renderTrace(steps) {
 
 async function runGet(path) {
   traceEl.textContent = "RUNNING...";
-  output.textContent = "LOADING... (first request may take ~30s if the server was sleeping)";
+  output.textContent = "LOADING... (first request may take ~60s if the server was sleeping)";
   try {
     const res = await fetch(BASE + path);
     const data = await res.json();
@@ -237,6 +252,32 @@ async function runGet(path) {
       output.textContent = JSON.stringify(data.result, null, 2);
     } else {
       traceEl.textContent = "(no trace for this endpoint)";
+      output.textContent = JSON.stringify(data, null, 2);
+    }
+  } catch (err) {
+    traceEl.textContent = "FAILED";
+    output.textContent = "ERROR: " + err.message;
+  }
+}
+
+async function runUptimeCheck() {
+  const key = document.getElementById("admin-key").value;
+  traceEl.textContent = "RUNNING...";
+  output.textContent = "LOADING... (first request may take ~30s if the server was sleeping)";
+  try {
+    const res = await fetch(BASE + "/api/uptime-check", {
+      headers: { "X-API-Key": key }
+    });
+    const data = await res.json();
+    if (res.status === 401) {
+      traceEl.textContent = "ACCESS DENIED";
+      output.textContent = JSON.stringify(data, null, 2);
+      return;
+    }
+    if (data.trace) {
+      renderTrace(data.trace);
+      output.textContent = JSON.stringify(data.result, null, 2);
+    } else {
       output.textContent = JSON.stringify(data, null, 2);
     }
   } catch (err) {
