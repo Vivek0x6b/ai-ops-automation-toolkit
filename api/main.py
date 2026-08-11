@@ -89,18 +89,21 @@ def uptime_check(request: Request, _auth: None = Depends(require_api_key)):
         is_healthy = r["healthy"]
 
         if was_healthy and not is_healthy:
-            trace.append(f"{name} just went DOWN - sending alert email...")
-            email_result = send_alert_email(
-                subject=f"[ALERT] {name} is down",
-                body=(
-                    f"{name} ({r['url']}) failed a health check.\n\n"
-                    f"Status code: {r['status_code']}\n"
-                    f"Error: {r['error']}\n"
-                    f"Response time: {r['response_time_ms']}ms"
-                ),
-            )
-            alerts_sent.append({"site": name, "email_result": email_result})
-            trace.append(f"  Email result: {email_result}")
+            if r.get("rate_limited"):
+                trace.append(f"{name} returned 429 (rate limited, not a real outage) - no alert sent")
+            else:
+                trace.append(f"{name} just went DOWN - sending alert email...")
+                email_result = send_alert_email(
+                    subject=f"[ALERT] {name} is down",
+                    body=(
+                        f"{name} ({r['url']}) failed a health check.\n\n"
+                        f"Status code: {r['status_code']}\n"
+                        f"Error: {r['error']}\n"
+                        f"Response time: {r['response_time_ms']}ms"
+                    ),
+                )
+                alerts_sent.append({"site": name, "email_result": email_result})
+                trace.append(f"  Email result: {email_result}")
         elif not was_healthy and is_healthy:
             trace.append(f"{name} recovered")
 

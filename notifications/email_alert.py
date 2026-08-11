@@ -1,32 +1,52 @@
 import os
-import smtplib
-from email.mime.text import MIMEText
+import requests
+from dotenv import load_dotenv
 
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
+load_dotenv()
+
+RESEND_API_URL = "https://api.resend.com/emails"
+FROM_ADDRESS = "AI Ops Toolkit <onboarding@resend.dev>"
 
 
 def send_alert_email(subject: str, body: str) -> dict:
-    gmail_address = os.environ.get("GMAIL_ADDRESS")
-    gmail_app_password = os.environ.get("GMAIL_APP_PASSWORD")
+    api_key = os.environ.get("RESEND_API_KEY")
     recipient = os.environ.get("ALERT_RECIPIENT")
 
-    if not all([gmail_address, gmail_app_password, recipient]):
+    if not all([api_key, recipient]):
         return {
             "sent": False,
-            "reason": "Missing GMAIL_ADDRESS, GMAIL_APP_PASSWORD, or ALERT_RECIPIENT env vars",
+            "reason": "Missing RESEND_API_KEY or ALERT_RECIPIENT env vars",
         }
 
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = gmail_address
-    msg["To"] = recipient
-
     try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(gmail_address, gmail_app_password)
-            server.sendmail(gmail_address, [recipient], msg.as_string())
-        return {"sent": True, "to": recipient}
-    except Exception as e:
+        response = requests.post(
+            RESEND_API_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": FROM_ADDRESS,
+                "to": [recipient],
+                "subject": subject,
+                "text": body,
+            },
+            timeout=10,
+        )
+        if response.status_code in (200, 201):
+            return {"sent": True, "to": recipient, "id": response.json().get("id")}
+        else:
+            return {
+                "sent": False,
+                "reason": f"Resend API returned {response.status_code}: {response.text}",
+            }
+    except requests.RequestException as e:
         return {"sent": False, "reason": str(e)}
+
+
+if __name__ == "__main__":
+    result = send_alert_email(
+        subject="[TEST] AI Ops Toolkit alert test",
+        body="This is a test alert from the AI Ops Automation Toolkit, sent via Resend.",
+    )
+    print(result)

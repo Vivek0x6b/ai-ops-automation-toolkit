@@ -19,29 +19,30 @@ def load_monitored_sites() -> list[dict]:
         return json.load(f)
 
 
-def check_endpoint(name, url, timeout=DEFAULT_TIMEOUT_SECONDS):
+def check_endpoint(name: str, url: str, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> dict:
     start = time.monotonic()
     try:
         response = requests.get(url, timeout=timeout)
-        elapsed_ms = round((time.monotonic()-start)*1000, 1)
-        return{
-            "name": name, 
-            "url" : url,
+        elapsed_ms = round((time.monotonic() - start) * 1000, 1)
+        return {
+            "name": name,
+            "url": url,
             "status_code": response.status_code,
-            "healthy": response.status_code<400,
-            "response_time_ms":elapsed_ms,
-            "error":None,
-
+            "healthy": response.status_code < 400,
+            "rate_limited": response.status_code == 429,
+            "response_time_ms": elapsed_ms,
+            "error": None,
         }
     except requests.RequestException as e:
-        elapsed_ms= round((time.monotonic()- start)*1000,1)
-        return{
+        elapsed_ms = round((time.monotonic() - start) * 1000, 1)
+        return {
             "name": name,
             "url": url,
             "status_code": None,
             "healthy": False,
-            "response_time_ms":elapsed_ms,
-            "error":str(e),
+            "rate_limited": False,
+            "response_time_ms": elapsed_ms,
+            "error": str(e),
         }
 def run_health_check(endpoints: list[dict] | None = None, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> dict:
     endpoints = endpoints or DEFAULT_ENDPOINTS

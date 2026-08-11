@@ -243,7 +243,7 @@ function renderTrace(steps) {
 
 async function runGet(path) {
   traceEl.textContent = "RUNNING...";
-  output.textContent = "LOADING... (first request may take ~60s if the server was sleeping)";
+  output.textContent = "LOADING... (first request may take ~90s if the server was sleeping)";
   try {
     const res = await fetch(BASE + path);
     const data = await res.json();
@@ -263,7 +263,7 @@ async function runGet(path) {
 async function runUptimeCheck() {
   const key = document.getElementById("admin-key").value;
   traceEl.textContent = "RUNNING...";
-  output.textContent = "LOADING... (first request may take ~30s if the server was sleeping)";
+  output.textContent = "LOADING... (first request may take ~90s if the server was sleeping)";
   try {
     const res = await fetch(BASE + "/api/uptime-check", {
       headers: { "X-API-Key": key }
