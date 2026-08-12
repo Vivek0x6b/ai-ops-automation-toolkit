@@ -17,7 +17,8 @@ from slowapi.errors import RateLimitExceeded
 from scripts.backup_check import check_backups
 from scripts.api_health_check import run_health_check, load_monitored_sites
 from scripts.log_parser import parse_log_file
-from llm.analysis import analyze_data
+from scripts.render_logs import fetch_recent_logs
+from llm.analysis import analyze_data, analyze_raw_logs
 from notifications.email_alert import send_alert_email
 
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -157,6 +158,29 @@ def analyze_logs(request: Request):
     }
     return {"trace": trace, "result": result}
 
+@app.get("/api/analyze-live-logs")
+@limiter.limit("5/minute")
+def analyze_live_logs(request: Request, _auth: None = Depends(require_api_key)):
+    trace = []
+    trace.append("Fetching recent logs from Render API for 'token-messiah-backend'...")
+    log_data = fetch_recent_logs("token-messiah-backend", limit=50)
+    trace.append(f"Retrieved {log_data['log_count']} real log entries")
+
+    raw_text = "\n".join(
+        f"{entry.get('timestamp', '')} {entry.get('message', '')}"
+        for entry in log_data["logs"]
+    )
+
+    trace.append("Sending real log text to Groq (llama-3.3-70b-versatile) for analysis...")
+    analysis = analyze_raw_logs(raw_text, source_name=log_data["service_name"])
+    trace.append(f"AI response received - severity: {analysis.get('severity', 'unknown')}")
+
+    result = {
+        "service_name": log_data["service_name"],
+        "log_count": log_data["log_count"],
+        "ai_analysis": analysis,
+    }
+    return {"trace": trace, "result": result}
 
 class TicketInput(BaseModel):
     title: str

@@ -187,6 +187,12 @@
       <input id="admin-key" class="admin-key-input" type="password" placeholder="Admin API Key" style="margin-bottom:10px;">
       <button onclick="runUptimeCheck()">Run Uptime Check</button>
     </div>
+    <div class="card">
+      <h3>Analyze Live Logs (Admin)</h3>
+      <p>Real Token Messiah logs pulled from Render + AI analysis. Protected - uses admin key.</p>
+      <input id="admin-key-2" class="admin-key-input" type="password" placeholder="Admin API Key" style="margin-bottom:10px;">
+      <button onclick="runLiveLogAnalysis()">Analyze Live Logs</button>
+    </div>
   </div>
 
   <div class="ticket-form">
@@ -266,6 +272,32 @@ async function runUptimeCheck() {
   output.textContent = "LOADING... (first request may take ~90s if the server was sleeping)";
   try {
     const res = await fetch(BASE + "/api/uptime-check", {
+      headers: { "X-API-Key": key }
+    });
+    const data = await res.json();
+    if (res.status === 401) {
+      traceEl.textContent = "ACCESS DENIED";
+      output.textContent = JSON.stringify(data, null, 2);
+      return;
+    }
+    if (data.trace) {
+      renderTrace(data.trace);
+      output.textContent = JSON.stringify(data.result, null, 2);
+    } else {
+      output.textContent = JSON.stringify(data, null, 2);
+    }
+  } catch (err) {
+    traceEl.textContent = "FAILED";
+    output.textContent = "ERROR: " + err.message;
+  }
+}
+
+async function runLiveLogAnalysis() {
+  const key = document.getElementById("admin-key-2").value;
+  traceEl.textContent = "RUNNING...";
+  output.textContent = "LOADING... (fetching real logs + AI analysis, may take a few seconds)";
+  try {
+    const res = await fetch(BASE + "/api/analyze-live-logs", {
       headers: { "X-API-Key": key }
     });
     const data = await res.json();
